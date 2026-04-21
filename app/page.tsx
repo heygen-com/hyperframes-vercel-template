@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-const COMPOSITION_SRC = "/compositions/product-promo/index.html";
+const COMPOSITION_SRC = "/api/preview";
 const COMPOSITION_WIDTH = 1920;
 const COMPOSITION_HEIGHT = 1080;
 

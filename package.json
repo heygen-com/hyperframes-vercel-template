@@ -7,9 +7,11 @@
     "build": "next build && tsx scripts/create-snapshot.ts",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test"
   },
   "dependencies": {
+    "@hyperframes/core": "^0.4.12",
     "@hyperframes/player": "^0.4.11",
     "@vercel/blob": "^2.3.3",
     "@vercel/sandbox": "^1.6.0",
