@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import styles from "./page.module.css";
 
 const COMPOSITION_SRC = "/api/preview";
 const COMPOSITION_WIDTH = 1920;
@@ -12,12 +13,48 @@ type RenderState =
   | { status: "done"; url: string }
   | { status: "error"; message: string };
 
+type HyperframesPlayerElement = HTMLElement & {
+  pause?: () => void;
+  currentTime?: number;
+};
+
 export default function Home() {
   const [render, setRender] = useState<RenderState>({ status: "idle" });
+  const [playerLoaded, setPlayerLoaded] = useState(false);
+  const playerRef = useRef<HyperframesPlayerElement | null>(null);
 
   useEffect(() => {
-    import("@hyperframes/player");
+    let cancelled = false;
+
+    import("@hyperframes/player").then(() => {
+      if (!cancelled) setPlayerLoaded(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  useEffect(() => {
+    if (!playerLoaded) return;
+
+    const player = playerRef.current;
+    if (!player) return;
+
+    const syncInitialState = () => {
+      player.pause?.();
+      if (typeof player.currentTime === "number") {
+        player.currentTime = 0;
+      }
+    };
+
+    syncInitialState();
+    player.addEventListener("ready", syncInitialState);
+
+    return () => {
+      player.removeEventListener("ready", syncInitialState);
+    };
+  }, [playerLoaded]);
 
   async function handleRender() {
     setRender({ status: "rendering" });
@@ -38,8 +75,8 @@ export default function Home() {
   }
 
   return (
-    <main className="page">
-      <header className="header">
+    <main className={styles.page}>
+      <header className={styles.header}>
         <h1>HyperFrames on Vercel</h1>
         <p>
           HTML-based video compositions — previewed in the browser, rendered
@@ -47,19 +84,22 @@ export default function Home() {
         </p>
       </header>
 
-      <section className="player-wrap">
-        {/* @ts-expect-error — custom element */}
-        <hyperframes-player
-          src={COMPOSITION_SRC}
-          width={COMPOSITION_WIDTH}
-          height={COMPOSITION_HEIGHT}
-          controls
-        />
+      <section className={styles.playerWrap}>
+        {playerLoaded && (
+          /* @ts-expect-error — custom element */
+          <hyperframes-player
+            ref={playerRef}
+            src={COMPOSITION_SRC}
+            width={COMPOSITION_WIDTH}
+            height={COMPOSITION_HEIGHT}
+            controls
+          />
+        )}
       </section>
 
-      <section className="controls">
+      <section className={styles.controls}>
         <button
-          className="render-btn"
+          className={styles.renderBtn}
           onClick={handleRender}
           disabled={render.status === "rendering"}
         >
@@ -67,13 +107,13 @@ export default function Home() {
         </button>
 
         {render.status === "rendering" && (
-          <p className="hint">
+          <p className={styles.hint}>
             Spinning up a Vercel Sandbox (Chrome + FFmpeg). This usually takes
             30–90 seconds for a 20-second composition.
           </p>
         )}
         {render.status === "done" && (
-          <p className="hint">
+          <p className={styles.hint}>
             Done —{" "}
             <a href={render.url} target="_blank" rel="noopener noreferrer">
               open MP4
@@ -81,11 +121,11 @@ export default function Home() {
           </p>
         )}
         {render.status === "error" && (
-          <p className="hint error">{render.message}</p>
+          <p className={`${styles.hint} ${styles.error}`}>{render.message}</p>
         )}
       </section>
 
-      <footer className="footer">
+      <footer className={styles.footer}>
         <a
           href="https://github.com/heygen-com/hyperframes"
           target="_blank"
@@ -102,73 +142,6 @@ export default function Home() {
           Docs
         </a>
       </footer>
-
-      <style jsx>{`
-        .page {
-          max-width: 1100px;
-          margin: 0 auto;
-          padding: 48px 24px 64px;
-          display: flex;
-          flex-direction: column;
-          gap: 32px;
-        }
-        .header h1 {
-          font-size: 28px;
-          font-weight: 600;
-          letter-spacing: -0.01em;
-        }
-        .header p {
-          margin-top: 8px;
-          color: #a1a1aa;
-          max-width: 640px;
-        }
-        .player-wrap {
-          width: 100%;
-          aspect-ratio: ${COMPOSITION_WIDTH} / ${COMPOSITION_HEIGHT};
-          background: #000;
-          border-radius: 12px;
-          overflow: hidden;
-        }
-        .player-wrap :global(hyperframes-player) {
-          width: 100%;
-          height: 100%;
-          display: block;
-        }
-        .controls {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          flex-wrap: wrap;
-        }
-        .render-btn {
-          padding: 10px 20px;
-          background: #fafafa;
-          color: #0a0a0f;
-          border-radius: 8px;
-          font-weight: 500;
-        }
-        .render-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-        .hint {
-          color: #a1a1aa;
-          font-size: 14px;
-        }
-        .hint.error {
-          color: #f87171;
-        }
-        .hint a {
-          color: #fafafa;
-          text-decoration: underline;
-        }
-        .footer {
-          display: flex;
-          gap: 12px;
-          color: #71717a;
-          font-size: 13px;
-        }
-      `}</style>
     </main>
   );
 }

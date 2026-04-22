@@ -1,15 +1,18 @@
+import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { dirname, extname, join, normalize, sep } from "node:path";
+import { promisify } from "node:util";
 
 export const PREVIEW_BASE_PATH = "/api/preview/";
-export const HYPERFRAMES_RUNTIME_URL =
-  "https://cdn.jsdelivr.net/npm/@hyperframes/core/dist/hyperframe.runtime.iife.js";
+export const HYPERFRAMES_RUNTIME_URL = "/api/runtime.js";
 export const PREVIEW_COMPOSITION_DIR = join(
   process.cwd(),
   "public",
   "compositions",
   "product-promo",
 );
+
+const execFileAsync = promisify(execFile);
 
 const HTML_CONTENT_TYPE = "text/html; charset=utf-8";
 const CONTENT_TYPES = new Map<string, string>([
@@ -34,6 +37,10 @@ export class PreviewNotFoundError extends Error {
   constructor(path: string) {
     super(`Preview file not found: ${path}`);
   }
+}
+
+export function isPreviewRuntimeAliasPath(path: string): boolean {
+  return path === "hyperframe-runtime.js" || path === "hyperframe.runtime.iife.js";
 }
 
 function resolvePreviewPath(path: string): string {
@@ -103,8 +110,27 @@ function rewriteSubCompositionPaths(content: string, compPath: string): string {
 }
 
 export async function getPreviewHtml(): Promise<string> {
+  const bundledHtml = await tryBundlePreviewHtml();
+  if (bundledHtml) {
+    return normalizePreviewHtml(bundledHtml);
+  }
+
   const file = await getPreviewFile("index.html");
   return normalizePreviewHtml(file.content.toString("utf8"));
+}
+
+async function tryBundlePreviewHtml(): Promise<string | null> {
+  try {
+    const tsxBin = join(process.cwd(), "node_modules", ".bin", "tsx");
+    const bundlerScript = join(process.cwd(), "scripts", "bundle-preview.ts");
+    const { stdout } = await execFileAsync(tsxBin, [bundlerScript, PREVIEW_COMPOSITION_DIR], {
+      cwd: process.cwd(),
+      maxBuffer: 20 * 1024 * 1024,
+    });
+    return stdout || null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getCompositionPreviewHtml(path: string): Promise<string> {

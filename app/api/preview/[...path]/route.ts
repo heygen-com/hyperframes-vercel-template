@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { getPreviewFile, isPreviewNotFoundError } from "@/lib/preview";
+import {
+  getPreviewFile,
+  isPreviewNotFoundError,
+  isPreviewRuntimeAliasPath,
+} from "@/lib/preview";
 
 export const runtime = "nodejs";
 
@@ -8,9 +12,17 @@ export async function GET(
   { params }: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await params;
+  const filePath = path.join("/");
+
+  if (isPreviewRuntimeAliasPath(filePath)) {
+    return NextResponse.redirect(new URL("/api/runtime.js", _req.url), {
+      status: 302,
+      headers: { "Cache-Control": "public, max-age=3600" },
+    });
+  }
 
   try {
-    const file = await getPreviewFile(path.join("/"));
+    const file = await getPreviewFile(filePath);
     return new NextResponse(new Uint8Array(file.content), {
       headers: {
         "Content-Type": file.contentType,
