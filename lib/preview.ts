@@ -134,7 +134,7 @@ function getBundledPreviewHtml(): Promise<string | null> {
 async function bundlePreviewHtml(): Promise<string | null> {
   try {
     const tsxBin = join(process.cwd(), "node_modules", ".bin", "tsx");
-    const bundlerScript = join(process.cwd(), "scripts", "bundle-preview.ts");
+    const bundlerScript = join(process.cwd(), "scripts", "bundle-preview.mts");
     const { stdout } = await execFileAsync(tsxBin, [bundlerScript, PREVIEW_COMPOSITION_DIR], {
       cwd: process.cwd(),
       maxBuffer: 20 * 1024 * 1024,

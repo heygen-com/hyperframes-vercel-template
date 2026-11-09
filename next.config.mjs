@@ -5,7 +5,7 @@ const nextConfig = {
     "/api/runtime.js": ["./node_modules/@hyperframes/core/dist/hyperframe.runtime.iife.js"],
     "/api/preview": [
       "./public/compositions/**/*",
-      "./scripts/bundle-preview.ts",
+      "./scripts/bundle-preview.mts",
       "./node_modules/@hyperframes/core/dist/**/*",
       "./node_modules/esbuild/**/*",
       "./node_modules/linkedom/**/*",
